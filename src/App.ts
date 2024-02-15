@@ -4,6 +4,7 @@
  * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
  */ 
 
+// Wednesday, February 14, 2024, I started this assignment.
 import * as gfx from 'gophergfx'
 import { RigidBody } from './RigidBody';
 
