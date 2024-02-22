@@ -9,6 +9,7 @@
 // to account for velocity lose due to friction, multiply velocity by 0.9, or 0.95, only do this once per collision
 import * as gfx from 'gophergfx'
 import { RigidBody } from './RigidBody';
+import { Color } from 'gophergfx/src/math/Color';
 
 export class App extends gfx.GfxApp
 {
@@ -45,6 +46,13 @@ export class App extends gfx.GfxApp
     // Vector used to store user input from keyboard or mouse
     private inputVector: gfx.Vector2;
 
+    //time limit for each ball
+    private timelimit: number;
+    private currentTime: number;
+
+    // used to check if timer should reset
+    private reset_timer: boolean;
+
 
     // --- Create the App class ---
     constructor()
@@ -67,6 +75,13 @@ export class App extends gfx.GfxApp
         this.winSound = new Audio('./assets/win.mp3');
 
         this.inputVector = new gfx.Vector2();
+
+        // 15 seconds to capture a sphere or you lose
+        this.timelimit = 15;
+        this.currentTime = this.timelimit;
+
+        // update reset_timer to false
+        this.reset_timer = false;
     }
 
 
@@ -184,8 +199,36 @@ export class App extends gfx.GfxApp
             }
         }
 
+        //update time
+
+        // there are three stages of the game, and timer doesn't need to be seen when you've won
+        if (this.stage != 0 && this.stage < 3) {
+
+        this.currentTime -= deltaTime;
+        if (this.currentTime <= 0) {
+            if (this.reset_timer == true) {
+            //this.currentTime = this.timelimit;
+            this.reset_timer = false;
+            } else {
+                this.text.text = "GG, You Lost.";
+                this.text.updateTextureImage();
+                this.textPlane.visible = true;
+
+                this.currentTime = 0;
+                return;
+            }
+        }
+
+        // update timer on display
+        this.text.text = 'Your time left: ' + this.currentTime.toFixed(2);
+        this.text.updateTextureImage();
+
+    }
+
         // Handle object-environment collisions
         // You do not need to modify this code
+        // I did modify this part of the code to add a timer to the game,
+        // but the functionalities are unchanged
         this.rigidBodies.children.forEach((transform: gfx.Node3) => {
             const rb = transform as RigidBody;
 
@@ -197,12 +240,21 @@ export class App extends gfx.GfxApp
                 // Remove the object from the scene
                 rb.remove();
 
+                // update timer requires the ball to be removed
+                if (this.currentTime > 0) {
+                    this.reset_timer = true;
+                    this.currentTime = this.timelimit;  
+                }
+
                 //Check if we captured the last sphere
                 if(this.rigidBodies.children.length == 0)
                     this.startNextStage();
                 else
                     this.setHoleRadius(this.holeRadius * holeScaleFactor);
+
+                    this.currentTime = this.timelimit;
             }
+
             // The object is within range of the hole and can fit inside
             else if(rb.getRadius() < this.holeRadius && rb.position.distanceTo(this.hole.position) < this.holeRadius)
             {
@@ -402,9 +454,17 @@ export class App extends gfx.GfxApp
             // COMMENT OUT THIS CODE
             // this.text.text = 'Create your own game!';
             // this.text.updateTextureImage();
-            // this.textPlane.visible = true;
+            this.textPlane.visible = true;// leave this uncommented so you can see the timer
 
             // ADD YOUR CODE HERE
+
+            //create a set of semi-transparent colours for larger spheres in case they block smaller ones
+            const semi_transparent_Colour_red = new Color(1, 0, 0, 0.5);
+            const semi_transparent_Colour_blue = new Color(0, 0, 1, 0.5);
+            const semi_transparent_Colour_yellow = new Color(1, 1, 0, 0.5);
+            const semi_transparent_Colour_purple = new Color(1, 0, 1, 0.5);
+            const semi_transparent_Colour_cyan = new Color(0, 1, 1, 0.5);
+
             const rb1 = new RigidBody(this.sphere);
             rb1.material = new gfx.GouraudMaterial();
             rb1.material.setColor(gfx.Color.RED);
@@ -417,8 +477,8 @@ export class App extends gfx.GfxApp
             rb2.material = new gfx.GouraudMaterial();
             rb2.material.setColor(gfx.Color.GREEN);
             rb2.position.set(-8, 0.5, -5);
-            rb2.setRadius(0.5);
-            rb2.velocity.set(4, 0, 0);
+            rb2.setRadius(0.53);
+            rb2.velocity.set(40, 10, 25);
             this.rigidBodies.add(rb2);
     
             const rb3 = new RigidBody(this.sphere);
@@ -426,12 +486,12 @@ export class App extends gfx.GfxApp
             rb3.material.setColor(gfx.Color.BLUE);
             rb3.position.set(8, 0.65, -4.5);
             rb3.setRadius(0.65);
-            rb3.velocity.set(-9, 0, 0);
+            rb3.velocity.set(-90, 40, -45);
             this.rigidBodies.add(rb3);
     
             const rb4 = new RigidBody(this.sphere);
             rb4.material = new gfx.GouraudMaterial();
-            rb4.material.setColor(gfx.Color.YELLOW);
+            rb4.material.setColor(semi_transparent_Colour_red);
             rb4.position.set(0, 0.85, -12);
             rb4.setRadius(0.85);
             rb4.velocity.set(15, 10, -20);
@@ -439,51 +499,35 @@ export class App extends gfx.GfxApp
 
             const rb5 = new RigidBody(this.sphere);
             rb5.material = new gfx.GouraudMaterial();
-            rb5.material.setColor(gfx.Color.PURPLE);
+            rb5.material.setColor(semi_transparent_Colour_purple);
             rb5.position.set(0.75, 1.0, 6);
-            rb5.setRadius(1.0);
+            rb5.setRadius(1.12);
             rb5.velocity.set(10, 0, 0);
             this.rigidBodies.add(rb5);
 
             const rb6 = new RigidBody(this.sphere);
             rb6.material = new gfx.GouraudMaterial();
-            rb6.material.setColor(gfx.Color.BLACK);
+            rb6.material.setColor(semi_transparent_Colour_blue);
             rb6.position.set(-9, 1.25, 5);
-            rb6.setRadius(1.25);
+            rb6.setRadius(1.30);
             rb6.velocity.set(3, 0, -2);
             this.rigidBodies.add(rb6);
 
             const rb7 = new RigidBody(this.sphere);
             rb7.material = new gfx.GouraudMaterial();
-            rb7.material.setColor(gfx.Color.CYAN);
+            rb7.material.setColor(semi_transparent_Colour_yellow);
             rb7.position.set(7, 1.425, -7);
-            rb7.setRadius(1.425);
+            rb7.setRadius(1.70);
             rb7.velocity.set(9, 0, -6);
             this.rigidBodies.add(rb7);
 
             const rb8 = new RigidBody(this.sphere);
             rb8.material = new gfx.GouraudMaterial();
-            rb8.material.setColor(gfx.Color.WHITE);
+            rb8.material.setColor(semi_transparent_Colour_cyan);
             rb8.position.set(-7, 1.55, 6.5);
-            rb8.setRadius(1.55);
-            rb8.velocity.set(-9, 0, 2.5);
+            rb8.setRadius(2.15);
+            rb8.velocity.set(30.0, 0, 25.0);
             this.rigidBodies.add(rb8);
-
-            const rb9 = new RigidBody(this.sphere);
-            rb9.material = new gfx.GouraudMaterial();
-            rb9.material.setColor(gfx.Color.RED);
-            rb9.position.set(-5.5, 1.75, -3.8);
-            rb9.setRadius(1.75);
-            rb9.velocity.set(15, 0, -5);
-            this.rigidBodies.add(rb9);
-
-            const rb10 = new RigidBody(this.sphere);
-            rb10.material = new gfx.GouraudMaterial();
-            rb10.material.setColor(gfx.Color.GREEN);
-            rb10.position.set(-7.4, 1.90, 4.7);
-            rb10.setRadius(1.90);
-            rb10.velocity.set(6, 0, -18);
-            this.rigidBodies.add(rb10);
 
         }
         // The user has finished the game
@@ -493,6 +537,7 @@ export class App extends gfx.GfxApp
             this.text.updateTextureImage();
             this.textPlane.visible = true;
             this.winSound.play();
+
         }
 
         this.stage++;
